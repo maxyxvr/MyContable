@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Cuentas por Pagar</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Cuentas por Pagar</h1>
+            <button onclick="openModal()"
+                class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800">
+                <span class="material-symbols-outlined text-sm">add</span> Registrar Deuda
+            </button>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10" id="kpis"></div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6">
+            <button onclick="setTab('all')" id="tab-all"
+                class="px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase">Todas</button>
+            <button onclick="setTab('pending')" id="tab-pending"
+                class="px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Pendientes</button>
+            <button onclick="setTab('paid')" id="tab-paid"
+                class="px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Pagadas</button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm overflow-x-auto">
+            <table class="w-full text-left min-w-[700px]">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Proveedor</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Concepto</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Vencimiento</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Valor</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Estado</th>
+                        <th class="px-6 py-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-slate-400 text-center py-14">No hay deudas registradas.</p>
+        </div>
+    </main>
+
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 id="modal-title" class="text-xl font-bold text-blue-900 mb-6" style="font-family:Manrope">Nueva Deuda
+            </h2>
+            <form id="form" class="space-y-4">
+                <input type="hidden" id="f-id" />
+                <div><label class="label">Proveedor</label><select id="f-supplier" class="inp">
+                        <option value="">— Sin asignar —</option>
+                    </select></div>
+                <div><label class="label">Concepto *</label><input id="f-desc" required class="inp"
+                        placeholder="Descripción del gasto..." /></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Monto *</label><input id="f-amount" type="number" required class="inp"
+                            placeholder="0" /></div>
+                    <div><label class="label">Vencimiento</label><input id="f-dueDate" type="date" class="inp" /></div>
+                </div>
+                <div><label class="label">Estado</label><select id="f-status" class="inp">
+                        <option value="pending">Pendiente</option>
+                        <option value="paid">Pagada</option>
+                    </select></div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium">Cancelar</button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-900 text-white rounded-full text-sm font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Payables stored as expenses with a dueDate field
+        // We'll use a separate key payables for clarity
+        const PAYABLE_KEY = 'mc_payables';
+        const Payables = {
+            all() { try { return JSON.parse(localStorage.getItem(PAYABLE_KEY)) || []; } catch { return []; } },
+            byId(id) { return this.all().find(p => p.id === id) || null; },
+            save(data) {
+                const list = this.all();
+                if (data.id) { const i = list.findIndex(p => p.id === data.id); if (i >= 0) list[i] = { ...list[i], ...data }; }
+                else { data.id = '_' + Math.random().toString(36).slice(2, 10); data.createdAt = new Date().toISOString(); list.push(data); }
+                localStorage.setItem(PAYABLE_KEY, JSON.stringify(list)); return data;
+            },
+            delete(id) { localStorage.setItem(PAYABLE_KEY, JSON.stringify(this.all().filter(p => p.id !== id))); }
+        };
+
+        let tab = 'all';
+        function setTab(t) {
+            tab = t;
+            ['all', 'pending', 'paid'].forEach(k => {
+                const el = document.getElementById('tab-' + k);
+                el.className = k === t ? 'px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase' : 'px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200';
+            });
+            render();
+        }
+
+        // Populate suppliers
+        const supSel = document.getElementById('f-supplier');
+        Clients.all().filter(c => c.type === 'proveedor' || c.type === 'ambos').forEach(c => {
+            const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; supSel.appendChild(o);
+        });
+
+        function getStatus(p) {
+            if (p.status === 'paid') return 'paid';
+            if (p.dueDate && p.dueDate < today()) return 'overdue';
+            if (p.dueDate && daysUntil(p.dueDate) <= 7) return 'urgent';
+            return 'pending';
+        }
+        const SM = { pending: { c: 'bg-amber-100 text-amber-700', l: 'Pendiente' }, paid: { c: 'bg-emerald-100 text-emerald-700', l: 'Pagada' }, overdue: { c: 'bg-red-100 text-red-700', l: 'Vencida' }, urgent: { c: 'bg-red-200 text-red-800', l: 'Urgente' } };
+
+        function render() {
+            const all = Payables.all().sort((a, b) => a.dueDate > b.dueDate ? 1 : -1);
+            const pending = all.filter(p => p.status !== 'paid');
+            const paid = all.filter(p => p.status === 'paid');
+            const critical = pending.filter(p => p.dueDate && daysUntil(p.dueDate) <= 7);
+            document.getElementById('kpis').innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-sm"><p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Total por Pagar</p><p class="text-3xl font-extrabold text-blue-900">${fmt(pending.reduce((s, p) => s + (Number(p.amount) || 0), 0))}</p></div>
+    <div class="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-100"><p class="text-xs text-red-500 uppercase font-bold tracking-widest mb-1">Críticas (≤7d)</p><p class="text-3xl font-extrabold text-red-600">${fmt(critical.reduce((s, p) => s + (Number(p.amount) || 0), 0))}</p></div>
+    <div class="bg-white p-6 rounded-2xl shadow-sm"><p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Pagado</p><p class="text-3xl font-extrabold text-emerald-600">${fmt(paid.reduce((s, p) => s + (Number(p.amount) || 0), 0))}</p></div>`;
+            let list = all;
+            if (tab === 'pending') list = pending;
+            if (tab === 'paid') list = paid;
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            if (!list.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            tbody.innerHTML = list.map(p => {
+                const s = getStatus(p); const sm = SM[s];
+                const sup = Clients.byId(p.supplierId);
+                const days = p.dueDate ? daysUntil(p.dueDate) : null;
+                return `<tr class="hover:bg-slate-50 border-b border-slate-100">
+      <td class="px-6 py-4"><p class="font-bold">${sup ? sup.name : 'Sin proveedor'}</p><p class="text-xs text-slate-400">${sup ? sup.nit : ''}</p></td>
+      <td class="px-6 py-4 text-sm text-slate-600">${p.desc || '—'}</td>
+      <td class="px-6 py-4 text-sm ${(s === 'urgent' || s === 'overdue') ? 'text-red-500 font-semibold' : 'text-slate-500'}">${fmtDate(p.dueDate)}${days !== null && days <= 7 && p.status !== 'paid' ? ` (${days}d)` : ''}</td>
+      <td class="px-6 py-4 text-right font-extrabold text-blue-900">${fmt(p.amount)}</td>
+      <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${sm.c}">${sm.l}</span></td>
+      <td class="px-6 py-4 text-right flex items-center gap-1 justify-end">
+        ${p.status !== 'paid' ? `<button onclick="markPaid('${p.id}')" class="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full hover:bg-emerald-100">Pagar</button>` : ''}
+        <button onclick="edit('${p.id}')" class="p-1 text-slate-400 hover:text-blue-900"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="del('${p.id}')" class="p-1 text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`;
+            }).join('');
+        }
+        function openModal(data) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-title').textContent = data ? 'Editar Deuda' : 'Nueva Deuda';
+            ['id', 'desc', 'amount', 'dueDate', 'status'].forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = data ? (data[k] || '') : '' });
+            document.getElementById('f-supplier').value = data ? data.supplierId || '' : '';
+            if (!data) { document.getElementById('f-status').value = 'pending'; }
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function edit(id) { openModal(Payables.byId(id)); }
+        function del(id) { confirm('¿Eliminar?', () => { Payables.delete(id); render(); showToast('Eliminada'); }); }
+        function markPaid(id) { const p = Payables.byId(id); if (p) { p.status = 'paid'; Payables.save(p); } render(); showToast('Marcada como pagada'); }
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                supplierId: document.getElementById('f-supplier').value || null,
+                desc: document.getElementById('f-desc').value,
+                amount: Number(document.getElementById('f-amount').value),
+                dueDate: document.getElementById('f-dueDate').value,
+                status: document.getElementById('f-status').value,
+            };
+            if (!data.id) delete data.id;
+            Payables.save(data); closeModal(); render(); showToast('Guardada');
+        });
+        render();
+    </script>
+</body>
+
+</html>

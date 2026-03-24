@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Proveedores</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div>
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest">Módulo</p>
+                <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Proveedores & Compliance
+                </h1>
+            </div>
+            <div class="flex gap-3">
+                <div class="relative"><span
+                        class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-sm">search</span><input
+                        id="search"
+                        class="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                        placeholder="Buscar..."></div>
+                <button onclick="openModal()"
+                    class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800"><span
+                        class="material-symbols-outlined text-sm">add</span> Nuevo</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">NIT</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Nombre</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Contacto</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Compliance</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-center text-slate-400 py-14">Sin proveedores. <a
+                    class="text-blue-900 font-bold underline cursor-pointer" onclick="openModal()">Agregar primero →</a>
+            </p>
+        </div>
+    </main>
+
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8">
+            <h2 id="modal-title" class="text-xl font-bold text-blue-900 mb-6" style="font-family:Manrope">Nuevo
+                Proveedor</h2>
+            <form id="form" class="space-y-4">
+                <input type="hidden" id="f-id" />
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2"><label class="label">Razón Social *</label><input id="f-name" required
+                            class="inp" placeholder="Nombre o razón social..." /></div>
+                    <div><label class="label">NIT</label><input id="f-nit" class="inp" placeholder="900.000.000-0" />
+                    </div>
+                    <div><label class="label">Régimen</label><select id="f-regime" class="inp">
+                            <option value="iva">Responsable IVA</option>
+                            <option value="no-iva">No responsable IVA</option>
+                            <option value="simple">Tributación simple</option>
+                        </select></div>
+                    <div><label class="label">Teléfono</label><input id="f-phone" class="inp"
+                            placeholder="300 000 0000" /></div>
+                    <div><label class="label">Correo</label><input id="f-email" type="email" class="inp"
+                            placeholder="correo@empresa.com" /></div>
+                    <div class="col-span-2"><label class="label">Servicios que presta</label><input id="f-services"
+                            class="inp" placeholder="Ej. Papelería, Software, Transporte..." /></div>
+                    <div><label class="label">Estado DIAN</label><select id="f-dianStatus" class="inp">
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                            <option value="unknown">Sin verificar</option>
+                        </select></div>
+                    <div><label class="label">Retención aplica</label><select id="f-retention" class="inp">
+                            <option value="yes">Sí</option>
+                            <option value="no">No</option>
+                        </select></div>
+                </div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium">Cancelar</button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-900 text-white rounded-full text-sm font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function render() {
+            const q = document.getElementById('search').value;
+            const list = (q ? Clients.search(q) : Clients.all()).filter(c => c.type === 'proveedor' || c.type === 'ambos');
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            if (!list.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            const DIAN_MAP = { active: { c: 'bg-emerald-100 text-emerald-700', l: 'Activo' }, inactive: { c: 'bg-red-100 text-red-700', l: 'Inactivo' }, unknown: { c: 'bg-slate-100 text-slate-500', l: 'Sin verificar' } };
+            tbody.innerHTML = list.map(c => {
+                const ds = DIAN_MAP[c.dianStatus || 'unknown'];
+                return `<tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+      <td class="px-6 py-4 font-mono text-sm text-slate-500">${c.nit || '—'}</td>
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarColor(c.name)}">${initials(c.name)}</div>
+          <div><p class="font-bold text-blue-900">${c.name}</p><p class="text-xs text-slate-400">${c.services || ''}</p></div>
+        </div>
+      </td>
+      <td class="px-6 py-4"><div class="text-sm">${c.phone || '—'}</div><div class="text-xs text-slate-400">${c.email || ''}</div></td>
+      <td class="px-6 py-4">
+        <span class="px-2 py-0.5 rounded-full text-xs font-bold ${ds.c}">${ds.l}</span>
+        ${c.retention === 'yes' ? '<span class="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Ret.</span>' : ''}
+      </td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="edit('${c.id}')" class="p-1.5 text-slate-400 hover:text-blue-900"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="del('${c.id}')" class="p-1.5 text-slate-400 hover:text-red-600"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`;
+            }).join('');
+        }
+        function openModal(data) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-title').textContent = data ? 'Editar Proveedor' : 'Nuevo Proveedor';
+            ['id', 'name', 'nit', 'phone', 'email', 'services', 'regime', 'dianStatus', 'retention'].forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = data ? (data[k] || '') : '' });
+            if (!data) { document.getElementById('f-dianStatus').value = 'unknown'; document.getElementById('f-retention').value = 'no'; }
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function edit(id) { openModal(Clients.byId(id)); }
+        function del(id) { confirm('¿Eliminar proveedor?', () => { Clients.delete(id); render(); showToast('Eliminado'); }); }
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                name: document.getElementById('f-name').value, nit: document.getElementById('f-nit').value,
+                type: 'proveedor', phone: document.getElementById('f-phone').value, email: document.getElementById('f-email').value,
+                services: document.getElementById('f-services').value, regime: document.getElementById('f-regime').value,
+                dianStatus: document.getElementById('f-dianStatus').value, retention: document.getElementById('f-retention').value,
+            };
+            if (!data.id) delete data.id;
+            Clients.save(data); closeModal(); render(); showToast('Proveedor guardado');
+        });
+        document.getElementById('search').addEventListener('input', render);
+        render();
+    </script>
+</body>
+
+</html>

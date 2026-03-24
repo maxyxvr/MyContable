@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Reportes</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Reportes Financieros</h1>
+            <div class="flex gap-3">
+                <select id="period-filter"
+                    class="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+                    <option value="">Todos los períodos</option>
+                </select>
+                <button onclick="window.print()"
+                    class="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800">
+                    <span class="material-symbols-outlined text-sm">print</span> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-emerald-400">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Ingresos Totales</p>
+                <p id="kpi-income" class="text-3xl font-extrabold text-blue-900">—</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-red-400">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Gastos Totales</p>
+                <p id="kpi-expenses" class="text-3xl font-extrabold text-blue-900">—</p>
+            </div>
+            <div class="bg-blue-900 p-6 rounded-2xl shadow-md">
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest mb-1">Utilidad Neta</p>
+                <p id="kpi-profit" class="text-3xl font-extrabold text-white">—</p>
+                <p id="kpi-margin" class="text-xs text-blue-300 mt-1">Margen: —</p>
+            </div>
+        </div>
+
+        <!-- Invoices table -->
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="font-bold text-blue-900">Facturas Emitidas</h2>
+                <span id="inv-count" class="text-xs text-slate-400"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm min-w-[600px]">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">N° Factura</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Cliente</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Total</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inv-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Expenses table -->
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="font-bold text-blue-900">Gastos Registrados</h2>
+                <span id="exp-count" class="text-xs text-slate-400"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm min-w-[600px]">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Categoría</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Descripción</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="exp-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const CATS = { alimentacion: 'Alimentación', transporte: 'Transporte', servicios: 'Servicios', suministros: 'Suministros', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro' };
+        const STATUS_MAP = { pending: { c: 'bg-amber-100 text-amber-700', l: 'Pendiente' }, paid: { c: 'bg-emerald-100 text-emerald-700', l: 'Pagada' }, overdue: { c: 'bg-red-100 text-red-700', l: 'Vencida' } };
+
+        function getInvStatus(inv) {
+            if (inv.status === 'paid') return 'paid';
+            if (inv.dueDate && inv.dueDate < today()) return 'overdue';
+            return 'pending';
+        }
+
+        function populatePeriods() {
+            const months = new Set();
+            [...Invoices.all(), ...Expenses.all()].forEach(r => {
+                const d = r.date || r.createdAt;
+                if (d) months.add(d.slice(0, 7));
+            });
+            const sel = document.getElementById('period-filter');
+            [...months].sort().reverse().forEach(m => {
+                const o = document.createElement('option'); o.value = m;
+                const [y, mo] = m.split('-');
+                o.textContent = new Date(y, Number(mo) - 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+                sel.appendChild(o);
+            });
+        }
+
+        function render() {
+            const period = document.getElementById('period-filter').value;
+            let invs = Invoices.all().sort((a, b) => b.createdAt > a.createdAt ? 1 : -1);
+            let exps = Expenses.all().sort((a, b) => b.date > a.date ? 1 : -1);
+            if (period) {
+                invs = invs.filter(i => (i.date || '').startsWith(period));
+                exps = exps.filter(e => (e.date || '').startsWith(period));
+            }
+            const income = invs.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total || 0), 0);
+            const expenses = exps.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+            const profit = income - expenses;
+            const margin = income > 0 ? ((profit / income) * 100).toFixed(1) : '0.0';
+            document.getElementById('kpi-income').textContent = fmt(income);
+            document.getElementById('kpi-expenses').textContent = fmt(expenses);
+            document.getElementById('kpi-profit').textContent = fmt(profit);
+            document.getElementById('kpi-margin').textContent = `Margen: ${margin}%`;
+            document.getElementById('inv-count').textContent = `${invs.length} facturas`;
+            document.getElementById('exp-count').textContent = `${exps.length} gastos`;
+
+            document.getElementById('inv-tbody').innerHTML = invs.length
+                ? invs.map(inv => {
+                    const s = getInvStatus(inv); const sm = STATUS_MAP[s];
+                    return `<tr class="hover:bg-slate-50 border-b border-slate-100">
+          <td class="px-6 py-3 font-mono font-semibold text-blue-900">${inv.code || '—'}</td>
+          <td class="px-6 py-3">${inv.clientName || '—'}</td>
+          <td class="px-6 py-3 text-slate-500">${fmtDate(inv.date)}</td>
+          <td class="px-6 py-3 text-right font-bold text-blue-900">${fmt(inv.total)}</td>
+          <td class="px-6 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${sm.c}">${sm.l}</span></td>
+        </tr>`;
+                }).join('')
+                : '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Sin facturas en este período</td></tr>';
+
+            document.getElementById('exp-tbody').innerHTML = exps.length
+                ? exps.map(e => `<tr class="hover:bg-slate-50 border-b border-slate-100">
+        <td class="px-6 py-3 text-slate-500">${fmtDate(e.date)}</td>
+        <td class="px-6 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${CATS[e.category] || e.category}</span></td>
+        <td class="px-6 py-3 text-slate-700">${e.desc || '—'}</td>
+        <td class="px-6 py-3 text-right font-bold text-blue-900">${fmt(e.amount)}</td>
+      </tr>`).join('')
+                : '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Sin gastos en este período</td></tr>';
+        }
+
+        populatePeriods();
+        document.getElementById('period-filter').addEventListener('change', render);
+        render();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyContable — Inicio</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="js/db.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {  
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .card-hover {
+            transition: all .2s ease
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 35, 111, .12)
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="mb-10">
+            <p id="greeting" class="text-slate-400 text-sm font-medium mb-1"></p>
+            <h2 class="text-4xl font-extrabold text-blue-900" style="font-family:Manrope">Panel Principal</h2>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <div class="bg-blue-900 text-white p-5 rounded-2xl shadow-md">
+                <p class="text-xs text-blue-300 font-bold uppercase tracking-widest mb-1">Utilidad Neta</p>
+                <p id="kpi-balance" class="text-2xl font-extrabold" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Por Cobrar</p>
+                <p id="kpi-receivable" class="text-2xl font-extrabold text-blue-900" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Gastos</p>
+                <p id="kpi-expenses" class="text-2xl font-extrabold text-blue-900" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-emerald-50 p-5 rounded-2xl shadow-sm border border-emerald-100">
+                <p class="text-xs text-emerald-600 font-bold uppercase tracking-widest mb-1">Ingresos</p>
+                <p id="kpi-income" class="text-2xl font-extrabold text-emerald-700" style="font-family:Manrope">—</p>
+            </div>
+        </div>
+
+        <!-- Módulos -->
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Módulos</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <a href="screens/dashboard.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">dashboard</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Dashboard</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Vista financiera general</p>
+                </div>
+            </a>
+            <a href="screens/invoice.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">receipt</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Facturación</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Crear factura electrónica</p>
+                </div>
+            </a>
+            <a href="screens/suppliers.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">handshake</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Proveedores</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Suppliers & compliance</p>
+                </div>
+            </a>
+            <a href="screens/expenses.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">point_of_sale</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Gastos</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Registro de egresos</p>
+                </div>
+            </a>
+            <a href="screens/clients.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">people</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Terceros</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Clientes y proveedores</p>
+                </div>
+            </a>
+            <a href="screens/reports.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">bar_chart</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Reportes</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Reportes financieros</p>
+                </div>
+            </a>
+            <a href="screens/catalog.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">inventory_2</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Catálogo</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Productos y servicios</p>
+                </div>
+            </a>
+            <a href="screens/payroll.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">badge</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Nómina</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Gestión de empleados</p>
+                </div>
+            </a>
+            <a href="screens/taxes.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">account_balance</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Impuestos</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Retenciones y declaraciones</p>
+                </div>
+            </a>
+            <a href="screens/receivable.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">arrow_downward</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Por Cobrar</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Cuentas por cobrar</p>
+                </div>
+            </a>
+            <a href="screens/payable.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">arrow_upward</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Por Pagar</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Cuentas por pagar</p>
+                </div>
+            </a>
+            <a href="screens/cashflow.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">waterfall_chart</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Flujo de Caja</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Proyección de liquidez</p>
+                </div>
+            </a>
+            <a href="screens/reconciliation.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-blue-900 group-hover:text-white transition-colors">compare_arrows</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Conciliación</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Conciliación bancaria</p>
+                </div>
+            </a>
+            <a href="screens/settings.html"
+                class="card-hover bg-white p-6 rounded-2xl shadow-sm flex items-start gap-4 no-underline group">
+                <div
+                    class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-900 transition-colors">
+                    <span
+                        class="material-symbols-outlined text-slate-600 group-hover:text-white transition-colors">settings</span>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900">Configuración</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Ajustes del sistema</p>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        const kpis = KPIs.compute();
+        document.getElementById('kpi-balance').textContent = fmt(kpis.balance);
+        document.getElementById('kpi-receivable').textContent = fmt(kpis.totalReceivable);
+        document.getElementById('kpi-expenses').textContent = fmt(kpis.totalExpenses);
+        document.getElementById('kpi-income').textContent = fmt(kpis.totalPaid);
+        const s = Settings.get();
+        const h = new Date().getHours();
+        const greet = h < 12 ? 'Buenos días' : h < 18 ? 'Buenas tardes' : 'Buenas noches';
+        document.getElementById('greeting').textContent = `${greet} · ${s.company}`;
+    </script>
+</body>
+
+</html>

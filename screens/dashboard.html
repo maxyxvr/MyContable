@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="mb-10">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-widest">Vista General</p>
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Dashboard Financiero</h1>
+            <p id="period-label" class="text-slate-400 text-sm mt-1"></p>
+        </div>
+
+        <!-- KPI row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div class="bg-blue-900 text-white p-5 rounded-2xl shadow-md">
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest mb-1">Utilidad</p>
+                <p id="k-profit" class="text-2xl font-extrabold" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Ingresos</p>
+                <p id="k-income" class="text-2xl font-extrabold text-emerald-600" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Gastos</p>
+                <p id="k-expenses" class="text-2xl font-extrabold text-red-500" style="font-family:Manrope">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Por Cobrar</p>
+                <p id="k-receivable" class="text-2xl font-extrabold text-blue-900" style="font-family:Manrope">—</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chart -->
+            <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm p-7">
+                <h2 class="font-bold text-blue-900 mb-6">Ingresos vs Egresos</h2>
+                <div id="chart-wrap" class="overflow-x-auto">
+                    <div class="flex items-end gap-2 min-w-[300px]" style="height:150px" id="bars"></div>
+                </div>
+                <div class="flex items-center gap-6 mt-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-900"></div><span
+                            class="text-xs text-slate-500">Ingresos</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div><span
+                            class="text-xs text-slate-500">Egresos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side widgets -->
+            <div class="space-y-4">
+                <!-- Recent invoices -->
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-900 text-sm">Últimas Facturas</h3>
+                        <a href="receivable.html" class="text-xs text-blue-900 font-bold hover:underline">Ver todas
+                            →</a>
+                    </div>
+                    <div id="recent-inv" class="space-y-2"></div>
+                    <p id="no-inv" class="hidden text-xs text-slate-400 text-center py-3">Sin facturas aún.</p>
+                </div>
+                <!-- Pending taxes -->
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-900 text-sm">Obligaciones Pendientes</h3>
+                        <a href="taxes.html" class="text-xs text-blue-900 font-bold hover:underline">Ver →</a>
+                    </div>
+                    <div id="pending-taxes" class="space-y-2"></div>
+                    <p id="no-taxes" class="hidden text-xs text-slate-400 text-center py-3">Todo al día ✓</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Date label
+        const now = new Date();
+        document.getElementById('period-label').textContent = now.toLocaleDateString('es-CO', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
+        // KPIs
+        const kpis = KPIs.compute();
+        document.getElementById('k-profit').textContent = fmt(kpis.balance);
+        document.getElementById('k-income').textContent = fmt(kpis.totalPaid);
+        document.getElementById('k-expenses').textContent = fmt(kpis.totalExpenses);
+        document.getElementById('k-receivable').textContent = fmt(kpis.totalReceivable);
+
+        // Bar chart — monthly
+        function buildMonthly() {
+            const invs = Invoices.all().filter(i => i.status === 'paid');
+            const exps = Expenses.all();
+            const months = {};
+            const add = (ym, f, v) => { if (!months[ym]) months[ym] = { income: 0, expenses: 0 }; months[ym][f] += v; };
+            invs.forEach(i => { const ym = (i.date || i.createdAt || '').slice(0, 7); if (ym) add(ym, 'income', i.total || 0); });
+            exps.forEach(e => { const ym = (e.date || e.createdAt || '').slice(0, 7); if (ym) add(ym, 'expenses', Number(e.amount) || 0); });
+            return Object.entries(months).sort((a, b) => a[0] > b[0] ? 1 : -1).slice(-6).map(([ym, v]) => ({ ym, ...v }));
+        }
+        const monthly = buildMonthly();
+        const barsEl = document.getElementById('bars');
+        if (!monthly.length) {
+            barsEl.innerHTML = '<p class="text-xs text-slate-400 py-8 text-center w-full">Registra ingresos y gastos para ver el gráfico.</p>';
+        } else {
+            const maxVal = Math.max(...monthly.flatMap(m => [m.income, m.expenses]), 1);
+            const toH = v => Math.max(Math.round((v / maxVal) * 130), 4);
+            const ml = ym => { const [y, m] = ym.split('-'); return new Date(y, Number(m) - 1).toLocaleDateString('es-CO', { month: 'short' }); };
+            barsEl.innerHTML = monthly.map(m => `
+    <div class="flex flex-col items-center gap-1 flex-1">
+      <div class="w-full flex items-end gap-1 justify-center" style="height:140px">
+        <div style="height:${toH(m.income)}px;width:45%" class="bg-blue-900 rounded-t-md"></div>
+        <div style="height:${toH(m.expenses)}px;width:45%" class="bg-red-400 rounded-t-md"></div>
+      </div>
+      <p class="text-xs text-slate-400 capitalize">${ml(m.ym)}</p>
+    </div>`).join('');
+        }
+
+        // Recent invoices
+        const invList = Invoices.all().sort((a, b) => b.createdAt > a.createdAt ? 1 : -1).slice(0, 4);
+        const invEl = document.getElementById('recent-inv');
+        const noInv = document.getElementById('no-inv');
+        if (!invList.length) { noInv.classList.remove('hidden'); }
+        else {
+            const SM = { pending: 'bg-amber-100 text-amber-700', paid: 'bg-emerald-100 text-emerald-700', overdue: 'bg-red-100 text-red-700' };
+            const SL = { pending: 'Pendiente', paid: 'Pagada', overdue: 'Vencida' };
+            invEl.innerHTML = invList.map(inv => {
+                const s = inv.status === 'paid' ? 'paid' : inv.dueDate && inv.dueDate < today() ? 'overdue' : 'pending';
+                return `<div class="flex justify-between items-center py-1.5 border-b border-slate-50">
+      <div><p class="text-xs font-semibold text-blue-900">${inv.code || '—'}</p><p class="text-[10px] text-slate-400">${inv.clientName || '—'}</p></div>
+      <div class="text-right"><p class="text-xs font-bold">${fmt(inv.total)}</p><span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SM[s]}">${SL[s]}</span></div>
+    </div>`;
+            }).join('');
+        }
+
+        // Pending taxes
+        const taxPending = Taxes.all().filter(t => t.status === 'pending').sort((a, b) => a.dueDate > b.dueDate ? 1 : -1).slice(0, 3);
+        const taxEl = document.getElementById('pending-taxes');
+        const noTax = document.getElementById('no-taxes');
+        if (!taxPending.length) { noTax.classList.remove('hidden'); }
+        else {
+            taxEl.innerHTML = taxPending.map(t => {
+                const days = t.dueDate ? daysUntil(t.dueDate) : null;
+                const cls = days !== null && days <= 7 ? 'text-red-500' : 'text-slate-500';
+                return `<div class="flex justify-between items-center py-1.5 border-b border-slate-50">
+      <div><p class="text-xs font-semibold">${t.name}</p><p class="text-[10px] text-slate-400">${t.form || ''} · ${t.period || ''}</p></div>
+      <div class="text-right"><p class="text-xs font-bold text-blue-900">${fmt(t.amount)}</p><p class="text-[10px] ${cls}">${days !== null ? days + 'd' : fmtDate(t.dueDate)}</p></div>
+    </div>`;
+            }).join('');
+        }
+    </script>
+</body>
+
+</html>

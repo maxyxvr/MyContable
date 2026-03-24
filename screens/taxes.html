@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Impuestos</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Impuestos y Retenciones</h1>
+            <button onclick="openModal()"
+                class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800">
+                <span class="material-symbols-outlined text-sm">add</span> Nueva Obligación
+            </button>
+        </div>
+        <!-- KPIs -->
+        <div id="kpis" class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10"></div>
+        <!-- Table -->
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Obligación</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Formulario</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Período</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Vencimiento</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Valor</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Estado</th>
+                        <th class="px-6 py-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-slate-400 text-center py-14">No hay obligaciones registradas.</p>
+        </div>
+    </main>
+
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 id="modal-title" class="text-xl font-bold text-blue-900 mb-6" style="font-family:Manrope">Nueva
+                Obligación</h2>
+            <form id="form" class="space-y-4">
+                <input type="hidden" id="f-id" />
+                <div><label class="label">Nombre *</label><input id="f-name" required class="inp"
+                        placeholder="IVA, Retención en la Fuente..." /></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Formulario</label><input id="f-form" class="inp" placeholder="F-300" />
+                    </div>
+                    <div><label class="label">Período</label><input id="f-period" class="inp"
+                            placeholder="Bim. 2 · 2026" /></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Valor *</label><input id="f-amount" type="number" required class="inp"
+                            placeholder="0" /></div>
+                    <div><label class="label">Vencimiento</label><input id="f-dueDate" type="date" class="inp" /></div>
+                </div>
+                <div><label class="label">Estado</label>
+                    <select id="f-status" class="inp">
+                        <option value="pending">Pendiente</option>
+                        <option value="declared">Declarado</option>
+                        <option value="paid">Pagado</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium">Cancelar</button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-900 text-white rounded-full text-sm font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function render() {
+            const list = Taxes.all().sort((a, b) => a.dueDate > b.dueDate ? 1 : -1);
+            const empty = document.getElementById('empty');
+            const tbody = document.getElementById('tbody');
+            const kpiEl = document.getElementById('kpis');
+            const todayStr = today();
+            const pending = list.filter(t => t.status === 'pending');
+            const critical = pending.filter(t => t.dueDate && daysUntil(t.dueDate) <= 7);
+            const pendingAmount = pending.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+            const nextDue = pending.filter(t => t.dueDate).sort((a, b) => a.dueDate > b.dueDate ? 1 : -1)[0];
+            const nextDays = nextDue ? daysUntil(nextDue.dueDate) : null;
+            kpiEl.innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-sm"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><span class="material-symbols-outlined text-amber-600">percent</span></div><p class="font-bold">Por Declarar</p></div><p class="text-3xl font-extrabold text-blue-900">${fmt(pendingAmount)}</p></div>
+    <div class="bg-white p-6 rounded-2xl shadow-sm"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><span class="material-symbols-outlined text-blue-600">warning</span></div><p class="font-bold">Críticas (≤7d)</p></div><p class="text-3xl font-extrabold text-blue-900">${critical.length}</p></div>
+    ${nextDue
+                    ? `<div class="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-100"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><span class="material-symbols-outlined text-red-600">schedule</span></div><p class="font-bold text-red-700">Próximo Vence</p></div><p class="text-3xl font-extrabold text-red-700">${nextDays <= 0 ? 'Vencido' : nextDays + ' días'}</p><p class="text-xs text-red-400 mt-1">${nextDue.name}</p></div>`
+                    : `<div class="bg-emerald-50 p-6 rounded-2xl shadow-sm border border-emerald-100"><p class="font-bold text-emerald-700">✓ Todo al día</p></div>`}`;
+            if (!list.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            const SM = { pending: { c: 'bg-amber-100 text-amber-700', l: 'Pendiente' }, declared: { c: 'bg-blue-100 text-blue-700', l: 'Declarado' }, paid: { c: 'bg-emerald-100 text-emerald-700', l: 'Pagado' } };
+            tbody.innerHTML = list.map(t => {
+                const sm = SM[t.status] || SM.pending;
+                const days = t.dueDate ? daysUntil(t.dueDate) : null;
+                const dueCls = days !== null && days <= 7 && t.status === 'pending' ? 'text-red-500 font-semibold' : 'text-slate-500';
+                return `<tr class="hover:bg-slate-50 border-b border-slate-100">
+      <td class="px-6 py-4 font-bold">${t.name}</td>
+      <td class="px-6 py-4 font-mono text-sm text-slate-500">${t.form || '—'}</td>
+      <td class="px-6 py-4 text-sm text-slate-500">${t.period || '—'}</td>
+      <td class="px-6 py-4 text-sm ${dueCls}">${fmtDate(t.dueDate)}${days !== null && days <= 7 && t.status === 'pending' ? ` (${days}d)` : ''}
+      </td>
+      <td class="px-6 py-4 text-right font-extrabold text-blue-900">${fmt(t.amount)}</td>
+      <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${sm.c}">${sm.l}</span></td>
+      <td class="px-6 py-4 text-right flex items-center gap-1 justify-end">
+        ${t.status !== 'paid' ? `<button onclick="markPaid('${t.id}')" class="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full hover:bg-emerald-100">Pagar</button>` : ''}
+        <button onclick="edit('${t.id}')" class="p-1 text-slate-400 hover:text-blue-900"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="del('${t.id}')" class="p-1 text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`;
+            }).join('');
+        }
+        function openModal(data) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-title').textContent = data ? 'Editar Obligación' : 'Nueva Obligación';
+            ['id', 'name', 'form', 'period', 'amount', 'dueDate', 'status'].forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = data ? (data[k] || '') : '' });
+            if (!data) document.getElementById('f-status').value = 'pending';
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function edit(id) { openModal(Taxes.byId ? Taxes.all().find(t => t.id === id) : null); }
+        function del(id) { confirm('¿Eliminar obligación?', () => { Taxes.delete(id); render(); showToast('Eliminada'); }); }
+        function markPaid(id) { const t = Taxes.all().find(x => x.id === id); if (t) { t.status = 'paid'; Taxes.save(t); } render(); showToast('Marcada como pagada'); }
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                name: document.getElementById('f-name').value,
+                form: document.getElementById('f-form').value,
+                period: document.getElementById('f-period').value,
+                amount: Number(document.getElementById('f-amount').value),
+                dueDate: document.getElementById('f-dueDate').value,
+                status: document.getElementById('f-status').value,
+            };
+            if (!data.id) delete data.id;
+            Taxes.save(data);
+            closeModal(); render(); showToast('Obligación guardada');
+        });
+        render();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Gastos</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-4xl mx-auto px-6 py-10">
+        <h1 class="text-3xl font-extrabold text-blue-900 mb-8" style="font-family:Manrope">Registro de Gastos</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Form -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h2 class="font-bold text-blue-900 mb-5">Nuevo Gasto</h2>
+                <form id="form" class="space-y-4">
+                    <input type="hidden" id="f-id" />
+                    <div>
+                        <label class="label">Monto *</label>
+                        <div class="relative"><span
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">$</span>
+                            <input id="f-amount" type="number" required min="0" step="1"
+                                class="inp pl-7 text-2xl font-bold" placeholder="0" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label">Fecha *</label><input id="f-date" type="date" required class="inp" />
+                        </div>
+                        <div><label class="label">Categoría</label>
+                            <select id="f-category" class="inp">
+                                <option value="alimentacion">Alimentación</option>
+                                <option value="transporte">Transporte</option>
+                                <option value="servicios">Servicios</option>
+                                <option value="suministros">Suministros</option>
+                                <option value="nomina">Nómina</option>
+                                <option value="impuestos">Impuestos</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Proveedor / Tercero</label>
+                        <select id="f-supplier" class="inp">
+                            <option value="">— Sin asignar —</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Descripción</label><textarea id="f-desc" class="inp min-h-[80px]"
+                            placeholder="Detalle del gasto..."></textarea></div>
+                    <div class="flex gap-3">
+                        <button type="button" id="cancel-btn" onclick="resetForm()"
+                            class="hidden px-4 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Cancelar</button>
+                        <button type="submit"
+                            class="flex-1 py-2.5 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800">Guardar
+                            Gasto</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List -->
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-blue-900">Gastos Recientes</h2>
+                    <span id="month-total"
+                        class="text-sm font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-full"></span>
+                </div>
+                <div id="list" class="space-y-3 max-h-[520px] overflow-y-auto pr-1"></div>
+                <p id="empty" class="hidden text-slate-400 text-center py-12">Sin gastos aún.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('f-date').value = today();
+        // Populate suppliers
+        const sup = document.getElementById('f-supplier');
+        Clients.all().forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sup.appendChild(o); });
+
+        const CATS = { alimentacion: 'Alimentación', transporte: 'Transporte', servicios: 'Servicios', suministros: 'Suministros', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro' };
+        const CAT_COLORS = { alimentacion: 'bg-amber-100 text-amber-700', transporte: 'bg-blue-100 text-blue-700', servicios: 'bg-purple-100 text-purple-700', suministros: 'bg-emerald-100 text-emerald-700', nomina: 'bg-rose-100 text-rose-700', impuestos: 'bg-slate-100 text-slate-700', otro: 'bg-slate-100 text-slate-500' };
+
+        function render() {
+            const list = Expenses.all().sort((a, b) => b.date > a.date ? 1 : -1);
+            const el = document.getElementById('list');
+            const empty = document.getElementById('empty');
+            const monthTotal = Expenses.thisMonth().reduce((s, e) => s + Number(e.amount), 0);
+            document.getElementById('month-total').textContent = 'Mes: ' + fmt(monthTotal);
+            if (!list.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            el.innerHTML = list.map(e => `
+    <div class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-0.5">
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full ${CAT_COLORS[e.category] || 'bg-slate-100'}">${CATS[e.category] || e.category}</span>
+          <span class="text-xs text-slate-400">${fmtDate(e.date)}</span>
+        </div>
+        <p class="text-sm text-slate-700 truncate">${e.desc || 'Sin descripción'}</p>
+      </div>
+      <span class="font-extrabold text-blue-900 whitespace-nowrap">${fmt(e.amount)}</span>
+      <div class="flex gap-1 flex-shrink-0">
+        <button onclick="editExp('${e.id}')" class="p-1 text-slate-300 hover:text-blue-900"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="delExp('${e.id}')" class="p-1 text-slate-300 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </div>
+    </div>`).join('');
+        }
+
+        function resetForm() {
+            document.getElementById('form').reset();
+            document.getElementById('f-id').value = '';
+            document.getElementById('f-date').value = today();
+            document.getElementById('cancel-btn').classList.add('hidden');
+        }
+        function editExp(id) {
+            const e = Expenses.byId(id);
+            ['id', 'amount', 'date', 'category', 'desc'].forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = e[k] || ''; });
+            document.getElementById('f-supplier').value = e.supplierId || '';
+            document.getElementById('cancel-btn').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+        function delExp(id) { confirm('¿Eliminar este gasto?', () => { Expenses.delete(id); render(); showToast('Eliminado'); }); }
+
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                amount: Number(document.getElementById('f-amount').value),
+                date: document.getElementById('f-date').value,
+                category: document.getElementById('f-category').value,
+                supplierId: document.getElementById('f-supplier').value || null,
+                desc: document.getElementById('f-desc').value,
+            };
+            if (!data.id) delete data.id;
+            Expenses.save(data);
+            resetForm(); render(); showToast('Gasto guardado');
+        });
+
+        render();
+    </script>
+</body>
+
+</html>

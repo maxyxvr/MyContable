@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Configuración</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            transition: background .2s;
+            flex-shrink: 0
+        }
+
+        .toggle.on {
+            background: #00236f
+        }
+
+        .toggle-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform .2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .2)
+        }
+
+        .toggle.on .toggle-thumb {
+            transform: translateX(20px)
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-2xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Configuración</h1>
+            <button onclick="saveSettings()"
+                class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold shadow-md hover:bg-blue-800">
+                <span class="material-symbols-outlined text-sm">save</span> Guardar
+            </button>
+        </div>
+
+        <!-- Empresa -->
+        <div class="bg-white rounded-2xl shadow-sm p-7 mb-5">
+            <h2 class="font-bold text-blue-900 mb-5 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-lg">business</span> Datos de la Empresa</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2"><label class="label">Razón Social</label><input id="s-company" class="inp"
+                        placeholder="Mi Empresa S.A.S" /></div>
+                <div><label class="label">NIT</label><input id="s-nit" class="inp" placeholder="900.000.000-0" /></div>
+                <div><label class="label">Régimen Tributario</label>
+                    <select id="s-regime" class="inp">
+                        <option value="iva">Responsable de IVA</option>
+                        <option value="no-iva">No Responsable de IVA</option>
+                        <option value="simple">Régimen Simple</option>
+                    </select>
+                </div>
+                <div><label class="label">Moneda</label>
+                    <select id="s-currency" class="inp">
+                        <option value="COP">COP — Peso Colombiano</option>
+                        <option value="USD">USD — Dólar Americano</option>
+                    </select>
+                </div>
+                <div><label class="label">Teléfono</label><input id="s-phone" class="inp" placeholder="601 000 0000" />
+                </div>
+                <div class="col-span-2"><label class="label">Dirección</label><input id="s-address" class="inp"
+                        placeholder="Cra 00 # 00 - 00, Ciudad" /></div>
+            </div>
+        </div>
+
+        <!-- Preferencias -->
+        <div class="bg-white rounded-2xl shadow-sm p-7 mb-5">
+            <h2 class="font-bold text-blue-900 mb-5 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-lg">tune</span> Preferencias</h2>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between py-2">
+                    <div>
+                        <p class="font-semibold text-sm">Notificaciones de vencimiento</p>
+                        <p class="text-xs text-slate-400">Alertas en pantalla cuando vencen facturas o declaraciones</p>
+                    </div>
+                    <div id="t-notifications" class="toggle" onclick="this.classList.toggle('on')">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between py-2 border-t border-slate-100">
+                    <div>
+                        <p class="font-semibold text-sm">Numeración automática de facturas</p>
+                        <p class="text-xs text-slate-400">Consecutivo automático al emitir facturas electrónicas</p>
+                    </div>
+                    <div id="t-autoNumber" class="toggle" onclick="this.classList.toggle('on')">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datos de prueba -->
+        <div class="bg-white rounded-2xl shadow-sm p-7 mb-5">
+            <h2 class="font-bold text-blue-900 mb-5 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-lg">storage</span> Datos</h2>
+            <button onclick="exportData()"
+                class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-full text-sm font-bold hover:bg-slate-200 mb-3">
+                <span class="material-symbols-outlined text-sm">download</span> Exportar todo (JSON)
+            </button>
+            <p class="text-xs text-slate-400">Descarga todos los datos del sistema en formato JSON como respaldo.</p>
+        </div>
+
+        <!-- Zona de peligro -->
+        <div class="bg-white rounded-2xl shadow-sm p-7 border border-red-100">
+            <h2 class="font-bold text-red-600 mb-5 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-lg text-red-600">warning</span> Zona de Peligro</h2>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-sm">Restablecer todos los datos</p>
+                    <p class="text-xs text-slate-400">Elimina clientes, facturas, gastos, empleados y más. No
+                        reversible.</p>
+                </div>
+                <button onclick="resetAll()"
+                    class="px-4 py-2 border-2 border-red-400 text-red-600 text-sm font-bold rounded-full hover:bg-red-50 transition-colors">Restablecer</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load settings
+        function loadSettings() {
+            const s = Settings.get();
+            document.getElementById('s-company').value = s.company || '';
+            document.getElementById('s-nit').value = s.nit || '';
+            document.getElementById('s-regime').value = s.regime || 'iva';
+            document.getElementById('s-currency').value = s.currency || 'COP';
+            document.getElementById('s-phone').value = s.phone || '';
+            document.getElementById('s-address').value = s.address || '';
+            if (s.notifications !== false) document.getElementById('t-notifications').classList.add('on');
+            if (s.autoNumber !== false) document.getElementById('t-autoNumber').classList.add('on');
+        }
+
+        function saveSettings() {
+            Settings.save({
+                company: document.getElementById('s-company').value,
+                nit: document.getElementById('s-nit').value,
+                regime: document.getElementById('s-regime').value,
+                currency: document.getElementById('s-currency').value,
+                phone: document.getElementById('s-phone').value,
+                address: document.getElementById('s-address').value,
+                notifications: document.getElementById('t-notifications').classList.contains('on'),
+                autoNumber: document.getElementById('t-autoNumber').classList.contains('on'),
+            });
+            showToast('Configuración guardada');
+        }
+
+        function exportData() {
+            const data = {
+                clients: Clients.all(),
+                products: Products.all(),
+                invoices: Invoices.all(),
+                expenses: Expenses.all(),
+                employees: Employees.all(),
+                taxes: Taxes.all(),
+                bankMoves: BankMoves.all(),
+                settings: Settings.get(),
+                exportedAt: new Date().toISOString(),
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `mycontable_backup_${today()}.json`; a.click();
+            showToast('Backup descargado');
+        }
+
+        function resetAll() {
+            confirm('⚠️ Esta acción eliminará TODOS los datos. No se puede deshacer. ¿Continuar?', () => {
+                const keys = ['mc_clients', 'mc_products', 'mc_invoices', 'mc_expenses', 'mc_employees', 'mc_taxes', 'mc_bank_moves', 'mc_payables'];
+                keys.forEach(k => localStorage.removeItem(k));
+                seedIfEmpty();
+                showToast('Datos restablecidos a valores iniciales');
+            });
+        }
+
+        loadSettings();
+    </script>
+</body>
+
+</html>

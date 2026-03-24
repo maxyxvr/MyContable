@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Flujo de Caja</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <h1 class="text-3xl font-extrabold text-blue-900 mb-8" style="font-family:Manrope">Flujo de Caja</h1>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+            <div class="bg-blue-900 text-white p-6 rounded-2xl shadow-md">
+                <p class="text-xs text-blue-300 uppercase font-bold tracking-widest mb-1">Saldo Neto</p>
+                <p id="kpi-balance" class="text-4xl font-extrabold">—</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Ingresos (cobrados)</p>
+                <p id="kpi-income" class="text-4xl font-extrabold text-emerald-600">—</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Egresos</p>
+                <p id="kpi-expenses" class="text-4xl font-extrabold text-red-500">—</p>
+            </div>
+        </div>
+
+        <!-- Bar chart -->
+        <div class="bg-white rounded-3xl shadow-sm p-8 mb-8">
+            <h2 class="font-bold text-blue-900 mb-6">Ingresos vs Egresos por Mes</h2>
+            <div id="chart" class="overflow-x-auto">
+                <div class="flex items-end gap-4 min-w-[500px]" style="height:160px;" id="bars"></div>
+            </div>
+            <div class="flex items-center gap-6 mt-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-900"></div><span
+                        class="text-xs text-slate-500">Ingresos</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-400"></div><span
+                        class="text-xs text-slate-500">Egresos</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly breakdown table -->
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+                <h2 class="font-bold text-blue-900">Desglose Mensual</h2>
+            </div>
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Mes</th>
+                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Ingresos</th>
+                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Egresos</th>
+                        <th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody id="breakdown"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        function buildMonthly() {
+            const invs = Invoices.all().filter(i => i.status === 'paid');
+            const exps = Expenses.all();
+            const months = {};
+            const addMonth = (ym, field, amount) => {
+                if (!months[ym]) months[ym] = { income: 0, expenses: 0 };
+                months[ym][field] += amount;
+            };
+            invs.forEach(i => { const ym = (i.date || i.createdAt || '').slice(0, 7); if (ym) addMonth(ym, 'income', i.total || 0); });
+            exps.forEach(e => { const ym = (e.date || e.createdAt || '').slice(0, 7); if (ym) addMonth(ym, 'expenses', Number(e.amount) || 0); });
+            return Object.entries(months).sort((a, b) => a[0] > b[0] ? 1 : -1).map(([ym, v]) => ({ ym, ...v, balance: v.income - v.expenses }));
+        }
+
+        function render() {
+            const kpis = KPIs.compute();
+            document.getElementById('kpi-balance').textContent = fmt(kpis.balance);
+            document.getElementById('kpi-income').textContent = fmt(kpis.totalPaid);
+            document.getElementById('kpi-expenses').textContent = fmt(kpis.totalExpenses);
+
+            const monthly = buildMonthly();
+            if (!monthly.length) {
+                document.getElementById('bars').innerHTML = '<p class="text-slate-400 text-sm py-8">Sin datos. Registra ingresos y gastos primero.</p>';
+                document.getElementById('breakdown').innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Sin datos disponibles.</td></tr>';
+                return;
+            }
+            const maxVal = Math.max(...monthly.flatMap(m => [m.income, m.expenses]), 1);
+            const toH = v => Math.max(Math.round((v / maxVal) * 130), 4);
+            const monthLabel = ym => {
+                const [y, m] = ym.split('-');
+                return new Date(y, Number(m) - 1).toLocaleDateString('es-CO', { month: 'short' });
+            };
+            document.getElementById('bars').innerHTML = monthly.map(m => `
+    <div class="flex flex-col items-center gap-1 flex-1 min-w-[60px]">
+      <div class="w-full flex items-end gap-1 justify-center" style="height:140px">
+        <div style="height:${toH(m.income)}px;width:45%" class="bg-blue-900 rounded-t-md" title="${fmt(m.income)}"></div>
+        <div style="height:${toH(m.expenses)}px;width:45%" class="bg-red-400 rounded-t-md" title="${fmt(m.expenses)}"></div>
+      </div>
+      <p class="text-xs text-slate-400 capitalize">${monthLabel(m.ym)}</p>
+    </div>`).join('');
+
+            document.getElementById('breakdown').innerHTML = monthly.reverse().map(m => `
+    <tr class="hover:bg-slate-50 border-b border-slate-100">
+      <td class="px-6 py-3 font-medium capitalize">${new Date(m.ym + '-01').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</td>
+      <td class="px-6 py-3 text-right font-bold text-emerald-600">${fmt(m.income)}</td>
+      <td class="px-6 py-3 text-right font-bold text-red-500">${fmt(m.expenses)}</td>
+      <td class="px-6 py-3 text-right font-extrabold ${m.balance >= 0 ? 'text-blue-900' : 'text-red-600'}">${fmt(m.balance)}</td>
+    </tr>`).join('');
+        }
+        render();
+    </script>
+</body>
+
+</html>

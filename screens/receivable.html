@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Por Cobrar</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Cuentas por Cobrar</h1>
+            <a href="invoice.html"
+                class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold shadow-md hover:bg-blue-800"><span
+                    class="material-symbols-outlined text-sm">add</span> Nueva Factura</a>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Total por Cobrar</p>
+                <p id="kpi-total" class="text-3xl font-extrabold text-blue-900">—</p>
+            </div>
+            <div class="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
+                <p class="text-xs text-amber-600 uppercase font-bold tracking-widest mb-1">Vencidas</p>
+                <p id="kpi-overdue" class="text-3xl font-extrabold text-amber-700">—</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Cobrado</p>
+                <p id="kpi-paid" class="text-3xl font-extrabold text-emerald-600">—</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6">
+            <button onclick="setTab('all')" id="tab-all"
+                class="px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase">Todas</button>
+            <button onclick="setTab('pending')" id="tab-pending"
+                class="px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Pendientes</button>
+            <button onclick="setTab('overdue')" id="tab-overdue"
+                class="px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Vencidas</button>
+            <button onclick="setTab('paid')" id="tab-paid"
+                class="px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Pagadas</button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm overflow-x-auto">
+            <table class="w-full text-left min-w-[700px]">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Factura</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Cliente</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Emisión</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Vencimiento</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Total</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Estado</th>
+                        <th class="px-6 py-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-slate-400 text-center py-14">No hay facturas registradas. <a
+                    href="invoice.html" class="text-blue-900 font-bold underline">Crear primera factura →</a></p>
+        </div>
+    </main>
+
+    <script>
+        let tab = 'all';
+        function setTab(t) {
+            tab = t;
+            ['all', 'pending', 'overdue', 'paid'].forEach(k => {
+                const el = document.getElementById('tab-' + k);
+                el.className = k === t
+                    ? 'px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase'
+                    : 'px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200';
+            });
+            render();
+        }
+        function getStatus(inv) {
+            if (inv.status === 'paid') return 'paid';
+            if (inv.dueDate && inv.dueDate < today()) return 'overdue';
+            return 'pending';
+        }
+        function render() {
+            const all = Invoices.all();
+            const todayStr = today();
+            const pending = all.filter(i => i.status !== 'paid');
+            const overdue = all.filter(i => i.status !== 'paid' && i.dueDate && i.dueDate < todayStr);
+            const paid = all.filter(i => i.status === 'paid');
+            document.getElementById('kpi-total').textContent = fmt(pending.reduce((s, i) => s + (i.total || 0), 0));
+            document.getElementById('kpi-overdue').textContent = fmt(overdue.reduce((s, i) => s + (i.total || 0), 0));
+            document.getElementById('kpi-paid').textContent = fmt(paid.reduce((s, i) => s + (i.total || 0), 0));
+            let list = all;
+            if (tab === 'pending') list = pending.filter(i => !(i.dueDate && i.dueDate < todayStr));
+            if (tab === 'overdue') list = overdue;
+            if (tab === 'paid') list = paid;
+            list = list.sort((a, b) => b.createdAt > a.createdAt ? 1 : -1);
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            if (!list.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            const STATUS_MAP = { pending: { c: 'bg-amber-100 text-amber-700', l: 'Pendiente' }, overdue: { c: 'bg-red-100 text-red-700', l: 'Vencida' }, paid: { c: 'bg-emerald-100 text-emerald-700', l: 'Pagada' } };
+            tbody.innerHTML = list.map(inv => {
+                const s = getStatus(inv);
+                const sm = STATUS_MAP[s];
+                return `<tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+      <td class="px-6 py-4 font-mono text-sm text-blue-900 font-semibold">${inv.code || '—'}</td>
+      <td class="px-6 py-4"><p class="font-bold">${inv.clientName || '—'}</p></td>
+      <td class="px-6 py-4 text-sm text-slate-500">${fmtDate(inv.date)}</td>
+      <td class="px-6 py-4 text-sm ${s === 'overdue' ? 'text-red-500 font-semibold' : 'text-slate-500'}">${fmtDate(inv.dueDate)}</td>
+      <td class="px-6 py-4 text-right font-extrabold text-blue-900">${fmt(inv.total)}</td>
+      <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${sm.c}">${sm.l}</span></td>
+      <td class="px-6 py-4 text-right">
+        ${inv.status !== 'paid' ? `<button onclick="markPaid('${inv.id}')" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-full hover:bg-emerald-100">Marcar pagada</button>` : ''}
+        <button onclick="delInv('${inv.id}')" class="ml-1 p-1.5 text-slate-300 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`;
+            }).join('');
+        }
+        function markPaid(id) { Invoices.updateStatus(id, 'paid'); render(); showToast('Factura marcada como pagada'); }
+        function delInv(id) { confirm('¿Eliminar factura?', () => { Invoices.delete(id); render(); showToast('Eliminada'); }); }
+        render();
+    </script>
+</body>
+
+</html>

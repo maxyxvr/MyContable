@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Nueva Factura</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+
+        #client-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+            z-index: 50;
+            overflow: hidden
+        }
+
+        #client-suggestions div {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: .875rem
+        }
+
+        #client-suggestions div:hover {
+            background: #f0f4ff
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-3xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest">Facturación Electrónica</p>
+                <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Nueva Factura</h1>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-400">N° Consecutivo</p>
+                <p id="inv-number" class="text-xl font-extrabold text-blue-900">FE-<span id="inv-num">———</span></p>
+            </div>
+        </div>
+
+        <form id="inv-form" class="space-y-6">
+            <!-- Cliente -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h2 class="font-bold text-blue-900 mb-4">Cliente / Tercero</h2>
+                <div class="relative">
+                    <label class="label">Buscar cliente</label>
+                    <input id="client-search" class="inp" placeholder="Escriba nombre o NIT..." autocomplete="off" />
+                    <div id="client-suggestions" class="hidden"></div>
+                </div>
+                <input type="hidden" id="client-id" />
+                <div id="client-selected" class="hidden mt-3 flex items-center gap-3 bg-blue-50 rounded-xl p-3">
+                    <span class="material-symbols-outlined text-blue-900">verified_user</span>
+                    <div>
+                        <p id="sel-name" class="font-bold text-blue-900 text-sm"></p>
+                        <p id="sel-nit" class="text-xs text-slate-400"></p>
+                    </div>
+                    <button type="button" onclick="clearClient()"
+                        class="ml-auto p-1 text-slate-400 hover:text-red-500"><span
+                            class="material-symbols-outlined text-sm">close</span></button>
+                </div>
+            </div>
+
+            <!-- Fechas -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm grid grid-cols-2 gap-4">
+                <div><label class="label">Fecha de Emisión</label><input id="inv-date" type="date" class="inp" /></div>
+                <div><label class="label">Fecha de Vencimiento</label><input id="inv-due" type="date" class="inp" />
+                </div>
+            </div>
+
+            <!-- Líneas -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-blue-900">Ítems / Servicios</h2>
+                    <button type="button" onclick="addLine()"
+                        class="flex items-center gap-1 text-blue-900 text-sm font-bold hover:text-blue-700">
+                        <span class="material-symbols-outlined text-sm">add_circle</span> Agregar línea
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-xs text-slate-400 uppercase">
+                                <th class="text-left pb-2">Descripción</th>
+                                <th class="text-right pb-2 w-20">Cant.</th>
+                                <th class="text-right pb-2 w-32">Precio</th>
+                                <th class="text-right pb-2 w-28">Subtotal</th>
+                                <th class="pb-2 w-8"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lines"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Totales -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="space-y-2 text-sm max-w-xs ml-auto">
+                    <div class="flex justify-between text-slate-500"><span>Subtotal</span><span id="t-sub">$0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="flex items-center gap-2 text-slate-500"><input type="checkbox" id="iva-check"
+                                class="rounded"> IVA 19%</label>
+                        <span id="t-iva" class="text-slate-500">$0</span>
+                    </div>
+                    <div
+                        class="flex justify-between font-extrabold text-blue-900 text-lg border-t border-slate-100 pt-3">
+                        <span>Total</span><span id="t-total">$0</span></div>
+                </div>
+                <div class="mt-4"><label class="label">Notas / Observaciones</label><textarea id="inv-notes"
+                        class="inp min-h-[70px]" placeholder="Condiciones de pago, observaciones..."></textarea></div>
+            </div>
+
+            <div class="flex gap-3 justify-end">
+                <a href="receivable.html"
+                    class="px-5 py-2.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Ver
+                    facturas</a>
+                <button type="submit"
+                    class="flex items-center gap-2 px-6 py-2.5 bg-blue-900 text-white rounded-full text-sm font-bold shadow-md hover:bg-blue-800">
+                    <span class="material-symbols-outlined text-sm">send</span> Emitir Factura
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        // Set default dates
+        const t = today(); document.getElementById('inv-date').value = t;
+        const due = new Date(); due.setDate(due.getDate() + 30);
+        document.getElementById('inv-due').value = due.toISOString().split('T')[0];
+        // Next number
+        document.getElementById('inv-num').textContent = String(Invoices.nextNumber()).padStart(4, '0');
+
+        // Client search
+        const csearch = document.getElementById('client-search');
+        const csug = document.getElementById('client-suggestions');
+        csearch.addEventListener('input', () => {
+            const q = csearch.value;
+            if (q.length < 1) { csug.classList.add('hidden'); return; }
+            const res = Clients.search(q);
+            if (!res.length) { csug.innerHTML = '<div class="text-slate-400">Sin resultados</div>'; csug.classList.remove('hidden'); return; }
+            csug.innerHTML = res.slice(0, 6).map(c => `<div onclick="selectClient('${c.id}')">${c.name} <span class="text-slate-400 text-xs">${c.nit || ''}</span></div>`).join('');
+            csug.classList.remove('hidden');
+        });
+        document.addEventListener('click', e => { if (!csearch.contains(e.target) && !csug.contains(e.target)) csug.classList.add('hidden'); });
+
+        function selectClient(id) {
+            const c = Clients.byId(id);
+            csug.classList.add('hidden');
+            csearch.value = c.name;
+            document.getElementById('client-id').value = c.id;
+            document.getElementById('sel-name').textContent = c.name;
+            document.getElementById('sel-nit').textContent = c.nit || '';
+            document.getElementById('client-selected').classList.remove('hidden');
+        }
+        function clearClient() {
+            csearch.value = ''; document.getElementById('client-id').value = '';
+            document.getElementById('client-selected').classList.add('hidden');
+        }
+
+        // Lines
+        let lines = [];
+        function addLine(desc = '', qty = 1, price = 0) {
+            const id = '_l' + Date.now();
+            lines.push({ id, desc, qty, price });
+            renderLines();
+        }
+        function removeLine(id) { lines = lines.filter(l => l.id !== id); renderLines(); calcTotals(); }
+        function lineChange(id, field, val) {
+            const l = lines.find(l => l.id === id);
+            if (l) { l[field] = field === 'desc' ? val : Number(val); calcTotals(); }
+        }
+        function renderLines() {
+            document.getElementById('lines').innerHTML = lines.map(l => `
+    <tr>
+      <td class="py-2 pr-2"><input value="${l.desc}" oninput="lineChange('${l.id}','desc',this.value)" class="inp" placeholder="Descripción del ítem..."/></td>
+      <td class="py-2 px-1"><input value="${l.qty}" type="number" min="1" oninput="lineChange('${l.id}','qty',this.value);calcTotals()" class="inp text-right"/></td>
+      <td class="py-2 px-1"><input value="${l.price}" type="number" min="0" oninput="lineChange('${l.id}','price',this.value);calcTotals()" class="inp text-right"/></td>
+      <td class="py-2 pl-1 text-right font-bold text-blue-900 whitespace-nowrap" id="sub-${l.id}">${fmt(l.qty * l.price)}</td>
+      <td class="py-2 pl-1"><button type="button" onclick="removeLine('${l.id}')" class="text-red-300 hover:text-red-500"><span class="material-symbols-outlined text-sm">remove_circle</span></button></td>
+    </tr>`).join('');
+        }
+        function calcTotals() {
+            lines.forEach(l => { const el = document.getElementById('sub-' + l.id); if (el) el.textContent = fmt(l.qty * l.price); });
+            const sub = lines.reduce((s, l) => s + l.qty * l.price, 0);
+            const iva = document.getElementById('iva-check').checked ? sub * 0.19 : 0;
+            document.getElementById('t-sub').textContent = fmt(sub);
+            document.getElementById('t-iva').textContent = fmt(iva);
+            document.getElementById('t-total').textContent = fmt(sub + iva);
+        }
+        document.getElementById('iva-check').addEventListener('change', calcTotals);
+        addLine(); // start with one empty line
+
+        document.getElementById('inv-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const clientId = document.getElementById('client-id').value;
+            if (!clientId) { showToast('Selecciona un cliente', 'error'); return; }
+            const validLines = lines.filter(l => l.desc.trim() && l.qty > 0);
+            if (!validLines.length) { showToast('Agrega al menos un ítem', 'error'); return; }
+            const sub = validLines.reduce((s, l) => s + l.qty * l.price, 0);
+            const iva = document.getElementById('iva-check').checked ? sub * 0.19 : 0;
+            const inv = Invoices.save({
+                clientId,
+                clientName: Clients.byId(clientId)?.name,
+                date: document.getElementById('inv-date').value,
+                dueDate: document.getElementById('inv-due').value,
+                lines: validLines,
+                subtotal: sub, iva, total: sub + iva,
+                notes: document.getElementById('inv-notes').value,
+            });
+            showToast(`Factura ${inv.code} emitida correctamente`);
+            setTimeout(() => location.href = 'receivable.html', 1200);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyContable — Terceros</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div>
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-widest">Módulo</p>
+                <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Directorio de Terceros
+                </h1>
+            </div>
+            <div class="flex gap-3">
+                <div class="relative">
+                    <span
+                        class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-sm">search</span>
+                    <input id="search" type="text"
+                        class="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                        placeholder="Buscar...">
+                </div>
+                <button onclick="openModal()"
+                    class="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-full text-sm font-bold shadow-md hover:bg-blue-800">
+                    <span class="material-symbols-outlined text-sm">person_add</span> Nuevo
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="flex gap-2 mb-6">
+            <button onclick="setFilter('all')" id="f-all"
+                class="filter-btn px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase">Todos</button>
+            <button onclick="setFilter('cliente')" id="f-cliente"
+                class="filter-btn px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Clientes</button>
+            <button onclick="setFilter('proveedor')" id="f-proveedor"
+                class="filter-btn px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200">Proveedores</button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Identificación</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Nombre / Razón Social</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Tipo</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Contacto</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-center text-slate-400 py-12">No hay terceros registrados.</p>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8">
+            <h2 id="modal-title" class="text-xl font-bold text-blue-900 mb-6" style="font-family:Manrope">Nuevo Tercero
+            </h2>
+            <form id="form" class="space-y-4">
+                <input type="hidden" id="f-id" />
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2"><label class="label">Nombre / Razón Social *</label><input id="f-name"
+                            required class="inp" placeholder="Nombre completo..." /></div>
+                    <div><label class="label">NIT o Cédula</label><input id="f-nit" class="inp"
+                            placeholder="900.000.000-0" /></div>
+                    <div><label class="label">Tipo *</label>
+                        <select id="f-type" class="inp">
+                            <option value="cliente">Cliente</option>
+                            <option value="proveedor">Proveedor</option>
+                            <option value="ambos">Ambos</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Teléfono</label><input id="f-phone" class="inp"
+                            placeholder="300 000 0000" /></div>
+                    <div><label class="label">Correo</label><input id="f-email" type="email" class="inp"
+                            placeholder="correo@empresa.com" /></div>
+                    <div class="col-span-2"><label class="label">Dirección</label><input id="f-address" class="inp"
+                            placeholder="Calle, ciudad..." /></div>
+                </div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Cancelar</button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .label {
+            display: block;
+            font-size: .75rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: .05em
+        }
+
+        .inp {
+            width: 100%;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+
+    <script>
+        let filter = 'all';
+
+        function setFilter(f) {
+            filter = f;
+            ['all', 'cliente', 'proveedor'].forEach(k => {
+                const el = document.getElementById('f-' + k);
+                el.className = k === f
+                    ? 'filter-btn px-4 py-1.5 bg-blue-900 text-white rounded-full text-xs font-bold uppercase'
+                    : 'filter-btn px-4 py-1.5 bg-white text-slate-500 rounded-full text-xs font-bold uppercase border border-slate-200';
+            });
+            render();
+        }
+
+        function render() {
+            const q = document.getElementById('search').value;
+            let list = q ? Clients.search(q) : Clients.all();
+            if (filter !== 'all') list = list.filter(c => c.type === filter || c.type === 'ambos');
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            if (!list.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            const typeBadge = t => {
+                const m = { cliente: 'bg-blue-100 text-blue-800', proveedor: 'bg-emerald-100 text-emerald-800', ambos: 'bg-purple-100 text-purple-800' };
+                const l = { cliente: 'Cliente', proveedor: 'Proveedor', ambos: 'Ambos' };
+                return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${m[t] || ''}">${l[t] || t}</span>`;
+            };
+            tbody.innerHTML = list.map(c => `
+    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+      <td class="px-6 py-4 font-mono text-sm text-slate-600">${c.nit || '—'}</td>
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarColor(c.name)}">${initials(c.name)}</div>
+          <div><p class="font-bold text-blue-900">${c.name}</p><p class="text-xs text-slate-400">${c.address || ''}</p></div>
+        </div>
+      </td>
+      <td class="px-6 py-4">${typeBadge(c.type)}</td>
+      <td class="px-6 py-4">
+        <div class="text-sm text-slate-600">${c.phone || ''}</div>
+        <div class="text-xs text-slate-400">${c.email || ''}</div>
+      </td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="edit('${c.id}')" class="p-1.5 text-slate-400 hover:text-blue-900 transition-colors"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="del('${c.id}')" class="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`).join('');
+        }
+
+        function openModal(data) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-title').textContent = data ? 'Editar Tercero' : 'Nuevo Tercero';
+            const fields = ['id', 'name', 'nit', 'type', 'phone', 'email', 'address'];
+            fields.forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = data ? (data[k] || '') : ''; });
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function edit(id) { openModal(Clients.byId(id)); }
+        function del(id) {
+            confirm('¿Eliminar este tercero?', () => { Clients.delete(id); render(); showToast('Tercero eliminado'); });
+        }
+
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                name: document.getElementById('f-name').value,
+                nit: document.getElementById('f-nit').value,
+                type: document.getElementById('f-type').value,
+                phone: document.getElementById('f-phone').value,
+                email: document.getElementById('f-email').value,
+                address: document.getElementById('f-address').value,
+            };
+            if (!data.id) delete data.id;
+            Clients.save(data);
+            closeModal();
+            render();
+            showToast('Tercero guardado correctamente');
+        });
+
+        document.getElementById('search').addEventListener('input', render);
+        render();
+    </script>
+</body>
+
+</html>

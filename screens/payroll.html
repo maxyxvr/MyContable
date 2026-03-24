@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MyContable — Nómina</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="../js/db.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/nav.js"></script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fb
+        }
+
+        .label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase
+        }
+
+        .inp {
+            width: 100%;
+            padding: 9px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: .875rem;
+            outline: none;
+            transition: border .15s
+        }
+
+        .inp:focus {
+            border-color: #00236f
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <main class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <h1 class="text-3xl font-extrabold text-blue-900" style="font-family:Manrope">Nómina de Empleados</h1>
+            <div class="flex gap-3">
+                <button onclick="procesarNomina()"
+                    class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold hover:bg-emerald-700"><span
+                        class="material-symbols-outlined text-sm">payments</span> Procesar Nómina</button>
+                <button onclick="openModal()"
+                    class="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-full text-sm font-bold hover:bg-blue-800"><span
+                        class="material-symbols-outlined text-sm">add</span> Empleado</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div id="kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-3xl shadow-sm overflow-x-auto">
+            <table class="w-full text-left min-w-[700px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Empleado</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Cargo</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Salario Base</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Aux. Transp.</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Deducciones</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Neto</th>
+                        <th class="px-6 py-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <p id="empty" class="hidden text-slate-400 text-center py-14">Sin empleados. Agrega el primero.</p>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 id="modal-title" class="text-xl font-bold text-blue-900 mb-6" style="font-family:Manrope">Nuevo Empleado
+            </h2>
+            <form id="form" class="space-y-4">
+                <input type="hidden" id="f-id" />
+                <div><label class="label">Nombre completo *</label><input id="f-name" required class="inp"
+                        placeholder="Ana Martínez" /></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Cédula</label><input id="f-cc" class="inp" placeholder="1.000.000.000" />
+                    </div>
+                    <div><label class="label">Cargo</label><input id="f-role" class="inp"
+                            placeholder="Contador Senior" /></div>
+                </div>
+                <div><label class="label">Salario Base *</label><input id="f-salary" type="number" required class="inp"
+                        placeholder="1800000" /></div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 rounded-full border border-slate-200 text-slate-600 text-sm font-medium">Cancelar</button>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-900 text-white rounded-full text-sm font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function render() {
+            const emps = Employees.all();
+            const kpiEl = document.getElementById('kpis');
+            const totalNomina = emps.reduce((s, e) => s + Employees.calcNet(e).net, 0);
+            const totalParaf = emps.reduce((s, e) => { const { health, pension } = Employees.calcNet(e); return s + health + pension; }, 0);
+            kpiEl.innerHTML = `
+    <div class="bg-white p-5 rounded-2xl shadow-sm text-center"><p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Empleados</p><p class="text-3xl font-extrabold text-blue-900">${emps.length}</p></div>
+    <div class="bg-white p-5 rounded-2xl shadow-sm text-center"><p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Total Nómina</p><p class="text-2xl font-extrabold text-blue-900">${fmt(totalNomina)}</p></div>
+    <div class="bg-white p-5 rounded-2xl shadow-sm text-center"><p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Seg. Social</p><p class="text-2xl font-extrabold text-blue-900">${fmt(totalParaf)}</p></div>
+    <div class="bg-emerald-50 p-5 rounded-2xl shadow-sm text-center border border-emerald-100"><p class="text-xs text-emerald-600 uppercase font-bold tracking-widest mb-1">Estado</p><p class="text-sm font-extrabold text-emerald-700">✓ Al día</p></div>`;
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            if (!emps.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            tbody.innerHTML = emps.map(e => {
+                const { base, transport, health, pension, net } = Employees.calcNet(e);
+                const deductions = health + pension;
+                const ac = avatarColor(e.name);
+                return `<tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${ac}">${initials(e.name)}</div>
+          <div><p class="font-bold">${e.name}</p><p class="text-xs text-slate-400">${e.cc || ''}</p></div>
+        </div>
+      </td>
+      <td class="px-6 py-4 text-sm text-slate-600">${e.role || '—'}</td>
+      <td class="px-6 py-4 text-right font-bold">${fmt(base)}</td>
+      <td class="px-6 py-4 text-right text-slate-500">${transport > 0 ? fmt(transport) : 'N/A'}</td>
+      <td class="px-6 py-4 text-right text-red-500">-${fmt(deductions)}</td>
+      <td class="px-6 py-4 text-right font-extrabold text-blue-900">${fmt(net)}</td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="edit('${e.id}')" class="p-1.5 text-slate-400 hover:text-blue-900"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button onclick="del('${e.id}')" class="p-1.5 text-slate-400 hover:text-red-600"><span class="material-symbols-outlined text-sm">delete</span></button>
+      </td>
+    </tr>`;
+            }).join('');
+        }
+        function openModal(data) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal-title').textContent = data ? 'Editar Empleado' : 'Nuevo Empleado';
+            ['id', 'name', 'cc', 'role', 'salary'].forEach(k => { const el = document.getElementById('f-' + k); if (el) el.value = data ? (data[k] || '') : '' });
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function edit(id) { openModal(Employees.byId(id)); }
+        function del(id) { confirm('¿Eliminar empleado?', () => { Employees.delete(id); render(); showToast('Eliminado'); }); }
+        function procesarNomina() {
+            const emps = Employees.all();
+            if (!emps.length) { showToast('No hay empleados', 'error'); return; }
+            const total = emps.reduce((s, e) => s + Employees.calcNet(e).net, 0);
+            Expenses.save({ amount: total, date: today(), category: 'nomina', desc: 'Nómina procesada — ' + new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }) });
+            showToast(`Nómina de ${fmt(total)} guardada como gasto`);
+        }
+        document.getElementById('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('f-id').value || undefined,
+                name: document.getElementById('f-name').value,
+                cc: document.getElementById('f-cc').value,
+                role: document.getElementById('f-role').value,
+                salary: Number(document.getElementById('f-salary').value),
+            };
+            if (!data.id) delete data.id;
+            Employees.save(data);
+            closeModal(); render(); showToast('Empleado guardado');
+        });
+        render();
+    </script>
+</body>
+
+</html>
