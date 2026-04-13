@@ -14,14 +14,69 @@ const DB_KEYS = {
     settings: 'mc_settings',
 };
 
-/* ── Utilidades base ────────────────────────────────────────── */
+/* ── Utilidades base con Cifrado AES-256 ───────────────────── */
 function _get(key) {
-    try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    
+    // Si parece JSON plano (migración), lo devolvemos y lo ciframos si hay llave
+    if (raw.startsWith('[') || raw.startsWith('{')) {
+        const data = JSON.parse(raw);
+        const keyAuth = Auth.getSessionKey();
+        if (keyAuth) _set(key, data); // Migrar a cifrado en caliente
+        return data;
+    }
+
+    // Intentar descifrar
+    const keyAuth = Auth.getSessionKey();
+    if (!keyAuth) return []; // No hay llave = no hay acceso a datos cifrados
+
+    try {
+        const bytes = CryptoJS.AES.decrypt(raw, keyAuth);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        return JSON.parse(decrypted) || [];
+    } catch (e) {
+        console.error('Error descifrando ' + key, e);
+        return [];
+    }
 }
+
 function _getObj(key, def = {}) {
-    try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+    const raw = localStorage.getItem(key);
+    if (!raw) return def;
+    
+    if (raw.startsWith('{') || raw.startsWith('[')) {
+        const data = JSON.parse(raw);
+        const keyAuth = Auth.getSessionKey();
+        if (keyAuth) _set(key, data);
+        return data;
+    }
+
+    const keyAuth = Auth.getSessionKey();
+    if (!keyAuth) return def;
+
+    try {
+        const bytes = CryptoJS.AES.decrypt(raw, keyAuth);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        return JSON.parse(decrypted) || def;
+    } catch (e) {
+        console.error('Error descifrando objeto ' + key, e);
+        return def;
+    }
 }
-function _set(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function _set(key, val) {
+    const keyAuth = Auth.getSessionKey();
+    if (!keyAuth) {
+        // Si no hay llave (ej: seed inicial), guardamos plano temporalmente
+        // El primer login lo migrará.
+        localStorage.setItem(key, JSON.stringify(val));
+        return;
+    }
+    const encrypted = CryptoJS.AES.encrypt(JSON.stringify(val), keyAuth).toString();
+    localStorage.setItem(key, encrypted);
+}
+
 function _id() { return '_' + Math.random().toString(36).slice(2, 10); }
 
 /* ── Clientes / Terceros ────────────────────────────────────── */
