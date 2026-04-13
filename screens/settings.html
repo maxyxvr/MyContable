@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="../js/auth.js"></script>
     <script src="../js/db.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/nav.js"></script>
@@ -172,6 +173,8 @@
     </main>
 
     <script>
+        Auth.requireAuth();
+        const form = document.getElementById('form');
         // Load settings
         function loadSettings() {
             const s = Settings.get();

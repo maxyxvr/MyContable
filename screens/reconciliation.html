@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="../js/auth.js"></script>
     <script src="../js/db.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/nav.js"></script>
@@ -100,7 +101,7 @@
     </div>
 
     <script>
-        document.getElementById('f-date').value = today();
+        Auth.requireAuth();
         function render() {
             const moves = BankMoves.all().sort((a, b) => b.date > a.date ? 1 : -1);
             const kpiEl = document.getElementById('kpis');

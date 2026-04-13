@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="../js/auth.js"></script>
     <script src="../js/db.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/nav.js"></script>
@@ -104,6 +105,7 @@
     </main>
 
     <script>
+        Auth.requireAuth();
         const CATS = { alimentacion: 'Alimentación', transporte: 'Transporte', servicios: 'Servicios', suministros: 'Suministros', nomina: 'Nómina', impuestos: 'Impuestos', otro: 'Otro' };
         const STATUS_MAP = { pending: { c: 'bg-amber-100 text-amber-700', l: 'Pendiente' }, paid: { c: 'bg-emerald-100 text-emerald-700', l: 'Pagada' }, overdue: { c: 'bg-red-100 text-red-700', l: 'Vencida' } };
 

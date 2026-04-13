@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="../js/auth.js"></script>
     <script src="../js/db.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/nav.js"></script>
@@ -84,6 +85,7 @@
     </main>
 
     <script>
+        Auth.requireAuth();
         function buildMonthly() {
             const invs = Invoices.all().filter(i => i.status === 'paid');
             const exps = Expenses.all();
@@ -98,6 +100,7 @@
         }
 
         function render() {
+            Auth.requireAuth();
             const kpis = KPIs.compute();
             document.getElementById('kpi-balance').textContent = fmt(kpis.balance);
             document.getElementById('kpi-income').textContent = fmt(kpis.totalPaid);

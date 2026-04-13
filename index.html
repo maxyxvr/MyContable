@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="js/auth.js"></script>
     <script src="js/db.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/nav.js"></script>
@@ -37,9 +38,16 @@
 
 <body class="min-h-screen">
     <main class="max-w-screen-xl mx-auto px-6 py-10">
-        <div class="mb-10">
-            <p id="greeting" class="text-slate-400 text-sm font-medium mb-1"></p>
-            <h2 class="text-4xl font-extrabold text-blue-900" style="font-family:Manrope">Panel Principal</h2>
+        <div class="mb-10 flex items-start justify-between">
+            <div>
+                <p id="greeting" class="text-slate-400 text-sm font-medium mb-1"></p>
+                <h2 class="text-4xl font-extrabold text-blue-900" style="font-family:Manrope">Panel Principal</h2>
+            </div>
+            <button onclick="Auth.logout()" title="Cerrar sesión"
+                class="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors mt-2 px-3 py-2 rounded-xl hover:bg-red-50">
+                <span class="material-symbols-outlined" style="font-size:1.15rem">logout</span>
+                Cerrar sesión
+            </button>
         </div>
 
         <!-- KPIs -->
@@ -237,6 +245,7 @@
     </main>
 
     <script>
+        Auth.requireAuth();
         const kpis = KPIs.compute();
         document.getElementById('kpi-balance').textContent = fmt(kpis.balance);
         document.getElementById('kpi-receivable').textContent = fmt(kpis.totalReceivable);

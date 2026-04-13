@@ -78,6 +78,11 @@
           <a href="${resolve(l.href)}" class="${isActive(l.href) ? 'active' : ''}">
             <span class="material-symbols-outlined">${l.icon}</span>${l.label}
           </a>`).join('')}
+        <div style="margin-top:20px; padding-top:12px; border-top:1px solid rgba(255,255,255,.1)">
+          <a href="#" onclick="Auth.logout()" style="color:#fca5a5">
+            <span class="material-symbols-outlined">logout</span>Cerrar sesión
+          </a>
+        </div>
       </nav>
     </aside>`;
 

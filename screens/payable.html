@@ -11,6 +11,7 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="../js/auth.js"></script>
     <script src="../js/db.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/nav.js"></script>
@@ -122,6 +123,7 @@
     </div>
 
     <script>
+        Auth.requireAuth();
         // Payables stored as expenses with a dueDate field
         // We'll use a separate key payables for clarity
         const PAYABLE_KEY = 'mc_payables';
